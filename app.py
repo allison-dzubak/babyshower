@@ -79,14 +79,27 @@ def get_r2_client():
         raise ValueError(
             "R2 credentials not configured. Please set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY environment variables.")
 
-    return boto3.client(
-        's3',
-        endpoint_url=f"https://{app.config['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
-        aws_access_key_id=app.config['R2_ACCESS_KEY_ID'],
-        aws_secret_access_key=app.config['R2_SECRET_ACCESS_KEY'],
-        config=Config(signature_version='s3v4'),
-        region_name='auto'
-    )
+    endpoint = f"https://{app.config['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com"
+    print(f"Connecting to R2 endpoint: {endpoint}")
+
+    try:
+        client = boto3.client(
+            's3',
+            endpoint_url=endpoint,
+            aws_access_key_id=app.config['R2_ACCESS_KEY_ID'],
+            aws_secret_access_key=app.config['R2_SECRET_ACCESS_KEY'],
+            config=Config(
+                signature_version='s3v4',
+                s3={'addressing_style': 'path'}
+            ),
+            region_name='auto',
+            verify=True  # Ensure SSL verification is enabled
+        )
+        print("R2 client created successfully")
+        return client
+    except Exception as e:
+        print(f"Error creating R2 client: {type(e).__name__}: {e}")
+        raise
 
 
 # Database Model

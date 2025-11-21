@@ -4,3 +4,4 @@ psycopg[binary]==3.2.12
 Werkzeug==3.0.1
 gunicorn==21.2.0
 boto3==1.34.136
+certifi==2024.8.30
