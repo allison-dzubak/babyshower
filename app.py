@@ -253,6 +253,27 @@ def reject_photo(photo_id):
     return jsonify({'success': True})
 
 
+@app.route('/api/photos/<int:photo_id>/unapprove', methods=['POST'])
+@admin_required
+def unapprove_photo(photo_id):
+    photo = Photo.query.get_or_404(photo_id)
+    photo.status = 'pending'
+    photo.approved_at = None
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/photos/<int:photo_id>/to-pending', methods=['POST'])
+@admin_required
+def to_pending(photo_id):
+    """Move photo to pending from any status"""
+    photo = Photo.query.get_or_404(photo_id)
+    photo.status = 'pending'
+    photo.approved_at = None
+    db.session.commit()
+    return jsonify({'success': True})
+
+
 @app.route('/api/photos/<int:photo_id>/delete', methods=['POST'])
 @admin_required
 def delete_photo(photo_id):

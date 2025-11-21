@@ -2,7 +2,7 @@
 {% block title %}Admin Dashboard{% endblock %}
 {% block styles %}
 .container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 20px auto;
     padding: 30px;
     background: white;
@@ -25,9 +25,7 @@ h1 { color: #8FA89E; margin-bottom: 20px; }
     cursor: pointer;
     font-weight: bold;
 }
-.logout-btn:hover {
-    background: #c82333;
-}
+.logout-btn:hover { background: #c82333; }
 .stats {
     display: flex;
     gap: 20px;
@@ -40,25 +38,26 @@ h1 { color: #8FA89E; margin-bottom: 20px; }
     border-radius: 10px;
     text-align: center;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: all 0.2s;
 }
-.stat-card:hover {
-    transform: scale(1.02);
+.stat-card:hover { transform: scale(1.02); }
+.stat-card.pending-active {
+    background: #ffc107;
+    color: #333;
 }
-.stat-card.active {
-    background: #8FA89E;
+.stat-card.pending-active .stat-number { color: #333; }
+.stat-card.approved-active {
+    background: #28a745;
     color: white;
 }
-.stat-card.active .stat-number {
+.stat-card.approved-active .stat-number { color: white; }
+.stat-card.rejected-active {
+    background: #dc3545;
     color: white;
 }
+.stat-card.rejected-active .stat-number { color: white; }
 .stat-number { font-size: 32px; font-weight: bold; color: #8FA89E; }
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
+.stat-label { font-size: 14px; margin-top: 5px; }
 .photo-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -74,36 +73,53 @@ h1 { color: #8FA89E; margin-bottom: 20px; }
     width: 100%;
     max-height: 400px;
     object-fit: contain;
-    background: #f5f5f5;
+    background: #1a1a1a;
 }
-.photo-info {
-    padding: 15px;
-}
+.photo-info { padding: 15px; }
 .caption {
     margin: 10px 0;
     color: #333;
-    font-style: italic;
+    font-size: 16px;
+    line-height: 1.4;
 }
-.actions {
+.status-actions {
     display: flex;
-    gap: 10px;
+    gap: 5px;
     margin-top: 10px;
 }
-.btn {
+.status-actions button {
     flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+.status-actions button:hover { transform: scale(1.05); }
+.status-actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+.btn-to-pending { background: #ffc107; color: #333; }
+.btn-to-approved { background: #28a745; color: white; }
+.btn-to-rejected { background: #dc3545; color: white; }
+.btn-delete {
+    width: 100%;
+    margin-top: 10px;
     padding: 10px;
+    background: #6c757d;
+    color: white;
     border: none;
     border-radius: 5px;
     font-weight: bold;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: all 0.2s;
 }
-.btn:hover { transform: scale(1.05); }
-.btn-approve { background: #28a745; color: white; }
-.btn-reject { background: #dc3545; color: white; }
-.btn-unapprove { background: #ffc107; color: #333; }
-.btn-delete { background: #6c757d; color: white; }
-.timestamp { font-size: 12px; color: #666; }
+.btn-delete:hover { transform: scale(1.05); background: #5a6268; }
+.timestamp { font-size: 12px; color: #666; margin-top: 5px; }
 .empty { text-align: center; padding: 40px; color: #666; }
 .hidden { display: none; }
 {% endblock %}
@@ -117,26 +133,37 @@ h1 { color: #8FA89E; margin-bottom: 20px; }
     </div>
 
     <div class="stats">
-        <div class="stat-card active" id="pendingTab" onclick="showSection('pending')">
+        <div class="stat-card pending-active" id="pendingTab" onclick="showSection('pending')">
             <div class="stat-number" id="pendingCount">0</div>
-            <div>Pending</div>
+            <div class="stat-label">Pending Review</div>
         </div>
         <div class="stat-card" id="approvedTab" onclick="showSection('approved')">
             <div class="stat-number" id="approvedCount">0</div>
-            <div>Approved</div>
+            <div class="stat-label">Approved (Live)</div>
+        </div>
+        <div class="stat-card" id="rejectedTab" onclick="showSection('rejected')">
+            <div class="stat-number" id="rejectedCount">0</div>
+            <div class="stat-label">Rejected</div>
         </div>
     </div>
 
     <div id="pendingSection">
-        <h2 style="margin-bottom: 15px;">Pending Approval</h2>
+        <h2 style="margin-bottom: 15px;">📋 Pending Review</h2>
         <div id="pendingGrid" class="photo-grid">
             <div class="empty">Loading photos...</div>
         </div>
     </div>
 
     <div id="approvedSection" class="hidden">
-        <h2 style="margin-bottom: 15px;">Approved Photos</h2>
+        <h2 style="margin-bottom: 15px;">✅ Approved Photos (Live on Display)</h2>
         <div id="approvedGrid" class="photo-grid">
+            <div class="empty">Loading photos...</div>
+        </div>
+    </div>
+
+    <div id="rejectedSection" class="hidden">
+        <h2 style="margin-bottom: 15px;">❌ Rejected Photos</h2>
+        <div id="rejectedGrid" class="photo-grid">
             <div class="empty">Loading photos...</div>
         </div>
     </div>
@@ -150,67 +177,82 @@ function showSection(section) {
     currentView = section;
 
     // Update tabs
-    document.getElementById('pendingTab').classList.toggle('active', section === 'pending');
-    document.getElementById('approvedTab').classList.toggle('active', section === 'approved');
+    document.getElementById('pendingTab').className = 'stat-card' + (section === 'pending' ? ' pending-active' : '');
+    document.getElementById('approvedTab').className = 'stat-card' + (section === 'approved' ? ' approved-active' : '');
+    document.getElementById('rejectedTab').className = 'stat-card' + (section === 'rejected' ? ' rejected-active' : '');
 
     // Update sections
     document.getElementById('pendingSection').classList.toggle('hidden', section !== 'pending');
     document.getElementById('approvedSection').classList.toggle('hidden', section !== 'approved');
+    document.getElementById('rejectedSection').classList.toggle('hidden', section !== 'rejected');
+}
 
-    // Load photos for the selected section
-    loadPhotos();
+function createPhotoCard(photo, currentStatus) {
+    const uploadTime = new Date(photo.uploaded_at).toLocaleString();
+    const approveTime = photo.approved_at ? new Date(photo.approved_at).toLocaleString() : null;
+
+    return `
+        <div class="photo-card" id="photo-${photo.id}">
+            <img src="/uploads/${photo.filename}" alt="Photo">
+            <div class="photo-info">
+                <div class="caption">${photo.caption}</div>
+                <div class="timestamp">Uploaded: ${uploadTime}</div>
+                ${approveTime ? `<div class="timestamp">Approved: ${approveTime}</div>` : ''}
+
+                <div class="status-actions">
+                    <button class="btn-to-pending" onclick="changeStatus(${photo.id}, 'pending')"
+                            ${currentStatus === 'pending' ? 'disabled' : ''}>
+                        Pending
+                    </button>
+                    <button class="btn-to-approved" onclick="changeStatus(${photo.id}, 'approved')"
+                            ${currentStatus === 'approved' ? 'disabled' : ''}>
+                        Approve
+                    </button>
+                    <button class="btn-to-rejected" onclick="changeStatus(${photo.id}, 'rejected')"
+                            ${currentStatus === 'rejected' ? 'disabled' : ''}>
+                        Reject
+                    </button>
+                </div>
+
+                <button class="btn-delete" onclick="deletePhoto(${photo.id})">
+                    Delete Permanently
+                </button>
+            </div>
+        </div>
+    `;
 }
 
 async function loadPhotos() {
     try {
-        // Load pending photos
+        // Load pending
         const pendingResponse = await fetch('/api/photos?status=pending');
         const pendingPhotos = await pendingResponse.json();
         document.getElementById('pendingCount').textContent = pendingPhotos.length;
 
         const pendingGrid = document.getElementById('pendingGrid');
-        if (pendingPhotos.length === 0) {
-            pendingGrid.innerHTML = '<div class="empty">No pending photos. Great job!</div>';
-        } else {
-            pendingGrid.innerHTML = pendingPhotos.map(photo => `
-                <div class="photo-card" id="photo-${photo.id}">
-                    <img src="/uploads/${photo.filename}" alt="Photo">
-                    <div class="photo-info">
-                        <div class="caption">${photo.caption}</div>
-                        <div class="timestamp">Uploaded ${new Date(photo.uploaded_at).toLocaleString()}</div>
-                        <div class="actions">
-                            <button class="btn btn-approve" onclick="approvePhoto(${photo.id})">Approve</button>
-                            <button class="btn btn-reject" onclick="rejectPhoto(${photo.id})">Reject</button>
-                        </div>
-                        <button class="btn btn-delete" onclick="deletePhoto(${photo.id})" style="margin-top: 10px;">Delete</button>
-                    </div>
-                </div>
-            `).join('');
-        }
+        pendingGrid.innerHTML = pendingPhotos.length === 0 ?
+            '<div class="empty">No pending photos. Great job!</div>' :
+            pendingPhotos.map(photo => createPhotoCard(photo, 'pending')).join('');
 
-        // Load approved photos
+        // Load approved
         const approvedResponse = await fetch('/api/photos?status=approved');
         const approvedPhotos = await approvedResponse.json();
         document.getElementById('approvedCount').textContent = approvedPhotos.length;
 
         const approvedGrid = document.getElementById('approvedGrid');
-        if (approvedPhotos.length === 0) {
-            approvedGrid.innerHTML = '<div class="empty">No approved photos yet.</div>';
-        } else {
-            approvedGrid.innerHTML = approvedPhotos.map(photo => `
-                <div class="photo-card" id="photo-${photo.id}">
-                    <img src="/uploads/${photo.filename}" alt="Photo">
-                    <div class="photo-info">
-                        <div class="caption">${photo.caption}</div>
-                        <div class="timestamp">Approved ${new Date(photo.approved_at || photo.uploaded_at).toLocaleString()}</div>
-                        <div class="actions">
-                            <button class="btn btn-unapprove" onclick="unapprovePhoto(${photo.id})">Unapprove</button>
-                            <button class="btn btn-delete" onclick="deletePhoto(${photo.id})">Delete</button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
+        approvedGrid.innerHTML = approvedPhotos.length === 0 ?
+            '<div class="empty">No approved photos yet.</div>' :
+            approvedPhotos.map(photo => createPhotoCard(photo, 'approved')).join('');
+
+        // Load rejected
+        const rejectedResponse = await fetch('/api/photos?status=rejected');
+        const rejectedPhotos = await rejectedResponse.json();
+        document.getElementById('rejectedCount').textContent = rejectedPhotos.length;
+
+        const rejectedGrid = document.getElementById('rejectedGrid');
+        rejectedGrid.innerHTML = rejectedPhotos.length === 0 ?
+            '<div class="empty">No rejected photos.</div>' :
+            rejectedPhotos.map(photo => createPhotoCard(photo, 'rejected')).join('');
 
     } catch (error) {
         console.error('Error loading photos:', error);
@@ -220,9 +262,21 @@ async function loadPhotos() {
     }
 }
 
-async function approvePhoto(id) {
+async function changeStatus(id, newStatus) {
+    const card = document.getElementById(`photo-${id}`);
+    if (card) card.style.opacity = '0.5';
+
     try {
-        const response = await fetch(`/api/photos/${id}/approve`, {
+        let endpoint;
+        if (newStatus === 'pending') {
+            endpoint = `/api/photos/${id}/to-pending`;
+        } else if (newStatus === 'approved') {
+            endpoint = `/api/photos/${id}/approve`;
+        } else if (newStatus === 'rejected') {
+            endpoint = `/api/photos/${id}/reject`;
+        }
+
+        const response = await fetch(endpoint, {
             method: 'POST',
             credentials: 'same-origin'
         });
@@ -234,58 +288,14 @@ async function approvePhoto(id) {
         }
 
         if (response.ok) {
-            const card = document.getElementById(`photo-${id}`);
-            if (card) card.style.opacity = '0.5';
             setTimeout(() => loadPhotos(), 500);
+        } else {
+            if (card) card.style.opacity = '1';
+            alert('Failed to change status');
         }
     } catch (error) {
-        console.error('Error approving photo:', error);
-    }
-}
-
-async function unapprovePhoto(id) {
-    try {
-        const response = await fetch(`/api/photos/${id}/reject`, {
-            method: 'POST',
-            credentials: 'same-origin'
-        });
-
-        if (response.status === 401) {
-            alert('Session expired. Please log in again.');
-            window.location.href = '/admin';
-            return;
-        }
-
-        if (response.ok) {
-            const card = document.getElementById(`photo-${id}`);
-            if (card) card.style.opacity = '0.5';
-            setTimeout(() => loadPhotos(), 500);
-        }
-    } catch (error) {
-        console.error('Error unapproving photo:', error);
-    }
-}
-
-async function rejectPhoto(id) {
-    try {
-        const response = await fetch(`/api/photos/${id}/reject`, {
-            method: 'POST',
-            credentials: 'same-origin'
-        });
-
-        if (response.status === 401) {
-            alert('Session expired. Please log in again.');
-            window.location.href = '/admin';
-            return;
-        }
-
-        if (response.ok) {
-            const card = document.getElementById(`photo-${id}`);
-            if (card) card.style.opacity = '0.5';
-            setTimeout(() => loadPhotos(), 500);
-        }
-    } catch (error) {
-        console.error('Error rejecting photo:', error);
+        console.error('Error changing status:', error);
+        if (card) card.style.opacity = '1';
     }
 }
 
@@ -319,7 +329,7 @@ async function deletePhoto(id) {
 // Load photos on page load
 loadPhotos();
 
-// Auto-refresh every 5 seconds
-setInterval(loadPhotos, 5000);
+// Auto-refresh every 10 seconds
+setInterval(loadPhotos, 10000);
 </script>
 {% endblock %}
