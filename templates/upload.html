@@ -79,7 +79,7 @@ textarea {
             <small style="color: #666;">Keep it short and sweet! (Max 500 characters)</small>
         </div>
 
-        <button type="submit" class="btn">Submit for Approval</button>
+        <button type="submit" class="btn">Submit</button>
     </form>
 </div>
 {% endblock %}
@@ -133,7 +133,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
 
         if (response.ok) {
             message.className = 'message success';
-            message.textContent = result.message || 'Photo uploaded successfully! It will appear after approval.';
+            message.textContent = result.message || 'Photo uploaded successfully!';
             message.style.display = 'block';
             this.reset();
             document.getElementById('preview').style.display = 'none';
@@ -153,7 +153,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
         window.scrollTo(0, 0);
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Submit for Approval';
+        btn.textContent = 'Submit';
     }
 });
 </script>

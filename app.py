@@ -183,7 +183,7 @@ def upload():
                 db.session.add(new_photo)
                 db.session.commit()
 
-                return jsonify({'success': True, 'message': 'Photo uploaded! Waiting for approval...'})
+                return jsonify({'success': True, 'message': 'Photo uploaded!'})
 
             except ValueError as e:
                 # R2 credentials not configured
