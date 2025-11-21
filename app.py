@@ -39,6 +39,12 @@ else:
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 10,
+    'pool_recycle': 3600,
+    'pool_pre_ping': True,
+    'max_overflow': 20
+}
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['ADMIN_PASSWORD'] = os.environ.get('ADMIN_PASSWORD')
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -136,6 +142,10 @@ def index():
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
     if request.method == 'POST':
+        # Check file size before processing
+        if request.content_length and request.content_length > app.config['MAX_CONTENT_LENGTH']:
+            return jsonify({'error': 'File too large. Maximum size is 16MB.'}), 413
+
         if 'photo' not in request.files:
             return jsonify({'error': 'No photo uploaded'}), 400
 
