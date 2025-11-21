@@ -42,9 +42,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
-    color: #666;
-    text-align: center;
+    overflow: hidden;
 }
 .qr-code img {
     width: 100%;
@@ -176,11 +174,7 @@ body {
 
         <div class="qr-section">
             <div class="qr-code" id="qrCodeContainer">
-                <!-- QR code will go here -->
-                <div style="padding: 20px;">
-                    Add QR code image here<br>
-                    (Point to /upload)
-                </div>
+                <!-- QR code will be generated here -->
             </div>
         </div>
 
@@ -205,6 +199,9 @@ body {
 </div>
 {% endblock %}
 {% block scripts %}
+<!-- QR Code Generation Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
 <script>
 let photos = [];
 let currentIndex = 0;
@@ -216,6 +213,27 @@ const MAX_FAILED_POLLS = 5;
 const POLL_INTERVAL = 3000; // 3 seconds
 const SLIDE_DURATION = 12000; // 12 seconds per photo
 const HEARTBEAT_INTERVAL = 5000; // 5 seconds
+
+// Generate QR Code
+function generateQRCode() {
+    const container = document.getElementById('qrCodeContainer');
+    container.innerHTML = ''; // Clear existing content
+
+    // Get current URL and create upload URL
+    const uploadUrl = window.location.origin + '/upload';
+
+    // Generate QR code
+    new QRCode(container, {
+        text: uploadUrl,
+        width: 240,
+        height: 240,
+        colorDark: "#8FA89E",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+    });
+
+    console.log('QR Code generated for:', uploadUrl);
+}
 
 // Polling with robust error handling
 async function fetchPhotos() {
@@ -348,6 +366,9 @@ function keepAwake() {
 
 // Initialize
 function init() {
+    // Generate QR code first
+    generateQRCode();
+
     // Initial fetch
     fetchPhotos();
 
