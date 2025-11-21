@@ -139,25 +139,19 @@ body {
     font-weight: bold;
     background: rgba(0,0,0,0.7);
     color: white;
-    display: flex;
+    display: none;
     align-items: center;
     gap: 8px;
     z-index: 1000;
+}
+.status-indicator.connection-lost {
+    display: flex;
 }
 .heartbeat {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #28a745;
-    animation: pulse 2s infinite;
-}
-@keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
-}
-.connection-lost .heartbeat {
     background: #dc3545;
-    animation: none;
 }
 {% endblock %}
 {% block content %}
@@ -292,14 +286,13 @@ async function checkHeartbeat() {
 
 // Update connection status indicator
 function updateConnectionStatus(isConnected) {
-    const status = document.getElementById('connectionStatus');
     const indicator = document.querySelector('.status-indicator');
 
     if (isConnected) {
-        status.textContent = 'Connected';
+        // Hide indicator when connected
         indicator.classList.remove('connection-lost');
     } else {
-        status.textContent = 'Connection Lost';
+        // Show indicator when connection lost
         indicator.classList.add('connection-lost');
     }
 }
