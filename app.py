@@ -10,10 +10,34 @@ from functools import wraps
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(16))
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///babyshower.db')
-if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
-    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://',
-                                                                                          'postgresql://', 1)
+
+# Database URL handling
+# Railway can use different variable names depending on how the database was created
+database_url = (
+        os.environ.get('DATABASE_URL') or
+        os.environ.get('DATABASE_PRIVATE_URL') or
+        os.environ.get('DATABASE_PUBLIC_URL') or
+        os.environ.get('POSTGRES_URL') or
+        os.environ.get('POSTGRESQL_URL')
+)
+
+if not database_url:
+    # No DATABASE_URL set - use SQLite for local development
+    database_url = 'sqlite:///babyshower.db'
+    print("WARNING: No DATABASE_URL set, using SQLite for local development")
+else:
+    # Railway PostgreSQL compatibility: convert postgres:// to postgresql://
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        print(f"Converted DATABASE_URL from postgres:// to postgresql://")
+
+    # Force use of psycopg (version 3) driver instead of psycopg2
+    # This is required for Python 3.13 compatibility
+    if database_url.startswith('postgresql://') and '+psycopg' not in database_url:
+        database_url = database_url.replace('postgresql://', 'postgresql+psycopg://', 1)
+        print(f"Using psycopg3 driver for PostgreSQL")
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['ADMIN_PASSWORD'] = os.environ.get('ADMIN_PASSWORD')
