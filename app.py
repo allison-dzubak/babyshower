@@ -178,12 +178,28 @@ def upload():
                     }
                 )
 
-                # Save metadata to database
-                new_photo = Photo(filename=filename, caption=caption)
-                db.session.add(new_photo)
-                db.session.commit()
+                # Only commit to database if R2 upload succeeded
+                try:
+                    new_photo = Photo(filename=filename, caption=caption)
+                    db.session.add(new_photo)
+                    db.session.commit()
 
-                return jsonify({'success': True, 'message': 'Photo uploaded!'})
+                    return jsonify({'success': True, 'message': 'Photo uploaded!'})
+
+                except Exception as db_error:
+                    # Database save failed - delete from R2 to keep consistent
+                    print(f"Database save failed, cleaning up R2: {db_error}")
+                    try:
+                        r2_client.delete_object(
+                            Bucket=app.config['R2_BUCKET_NAME'],
+                            Key=filename
+                        )
+                        print(f"Cleaned up orphaned file from R2: {filename}")
+                    except Exception as cleanup_error:
+                        print(f"Failed to cleanup R2 file: {cleanup_error}")
+
+                    # Re-raise to hit outer exception handler
+                    return jsonify({'error': 'Database error. Please try again.'}), 500
 
             except ValueError as e:
                 # R2 credentials not configured
