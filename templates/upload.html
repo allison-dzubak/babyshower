@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Upload Photo{% endblock %}
+{% block styles %}
+.container {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 30px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+h1 { color: #8FA89E; margin-bottom: 10px; }
+.subtitle { color: #666; margin-bottom: 30px; }
+.form-group { margin-bottom: 20px; }
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #333;
+}
+input[type="file"] {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border: 2px dashed #8FA89E;
+    border-radius: 10px;
+    background: #f5f8f7;
+}
+textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 16px;
+    min-height: 100px;
+}
+.btn {
+    width: 100%;
+    padding: 15px;
+    background: #8FA89E;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.btn:hover { transform: scale(1.02); }
+.btn:disabled { background: #ccc; cursor: not-allowed; }
+.message {
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: none;
+}
+.success { background: #d4edda; color: #155724; display: block; }
+.error { background: #f8d7da; color: #721c24; display: block; }
+#preview { max-width: 100%; margin-top: 10px; border-radius: 10px; display: none; }
+{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>Life Lessons from Mom & Dad</h1>
+    <p class="subtitle">Upload a photo, share the wisdom</p>
+
+    <div id="message" class="message"></div>
+
+    <form id="uploadForm" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="photo">Choose Photo</label>
+            <input type="file" id="photo" name="photo" accept="image/*" capture="environment" required>
+            <img id="preview" alt="Preview">
+        </div>
+
+        <div class="form-group">
+            <label for="caption">Advice for Baby</label>
+            <textarea id="caption" name="caption" placeholder="Share something funny, sweet, or wise about this moment..." required maxlength="500"></textarea>
+            <small style="color: #666;">Keep it short and sweet! (Max 500 characters)</small>
+        </div>
+
+        <button type="submit" class="btn">Submit for Approval</button>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+// Photo preview
+document.getElementById('photo').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('preview');
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Form submission
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const btn = this.querySelector('button');
+    const message = document.getElementById('message');
+    const formData = new FormData(this);
+
+    btn.disabled = true;
+    btn.textContent = 'Uploading...';
+    message.style.display = 'none';
+
+    try {
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            message.className = 'message success';
+            message.textContent = result.message || 'Photo uploaded successfully! It will appear after approval.';
+            message.style.display = 'block';
+            this.reset();
+            document.getElementById('preview').style.display = 'none';
+        } else {
+            throw new Error(result.error || 'Upload failed');
+        }
+    } catch (error) {
+        message.className = 'message error';
+        message.textContent = error.message;
+        message.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit for Approval';
+    }
+});
+</script>
+{% endblock %}

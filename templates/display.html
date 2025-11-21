@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+{% block title %}Display{% endblock %}
+{% block styles %}
+body {
+    background: #000;
+    overflow: hidden;
+}
+.display-container {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+}
+.sidebar {
+    width: 25%;
+    background: linear-gradient(135deg, #8FA89E 0%, #B5C4B8 100%);
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+.sidebar h1 {
+    color: white;
+    font-size: 36px;
+    margin-bottom: 40px;
+    line-height: 1.3;
+}
+.qr-section {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+.qr-code {
+    width: 250px;
+    height: 250px;
+    background: white;
+    border: 5px solid #8FA89E;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+}
+.qr-code img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.scan-instruction {
+    color: white;
+    font-size: 22px;
+    font-weight: bold;
+    margin-top: 20px;
+}
+.parents-signature {
+    color: white;
+    font-size: 20px;
+    font-style: italic;
+    margin-top: 15px;
+    opacity: 0.9;
+}
+.slideshow-area {
+    width: 75%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.slideshow {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.slide {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+}
+.slide.active {
+    display: flex;
+    opacity: 1;
+}
+.slide img {
+    max-width: 98%;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(255,255,255,0.3);
+}
+.advice-header {
+    font-size: 48px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    margin-bottom: 30px;
+}
+.caption {
+    margin-top: 30px;
+    font-size: 32px;
+    color: white;
+    text-align: center;
+    max-width: 900px;
+    font-style: italic;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    line-height: 1.4;
+}
+.empty-state {
+    text-align: center;
+    color: white;
+    padding: 60px;
+}
+.empty-state h2 {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+.empty-state p {
+    font-size: 24px;
+    opacity: 0.8;
+}
+.status-indicator {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 1000;
+}
+.heartbeat {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #28a745;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+}
+.connection-lost .heartbeat {
+    background: #dc3545;
+    animation: none;
+}
+{% endblock %}
+{% block content %}
+<div class="status-indicator">
+    <div class="heartbeat"></div>
+    <span id="connectionStatus">Connected</span>
+</div>
+
+<div class="display-container">
+    <!-- Left Sidebar -->
+    <div class="sidebar">
+        <h1>Life Lessons from Mom & Dad</h1>
+
+        <div class="qr-section">
+            <div class="qr-code" id="qrCodeContainer">
+                <!-- QR code will go here -->
+                <div style="padding: 20px;">
+                    Add QR code image here<br>
+                    (Point to /upload)
+                </div>
+            </div>
+        </div>
+
+        <div class="scan-instruction">
+            Scan to share advice for Baby Andreassi
+        </div>
+
+        <div class="parents-signature">
+            from Lauren & Nick ♥
+        </div>
+    </div>
+
+    <!-- Right Slideshow Area -->
+    <div class="slideshow-area">
+        <div class="slideshow" id="slideshow">
+            <div class="empty-state">
+                <h2>Waiting for photos...</h2>
+                <p>Be the first to share your wisdom!</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let photos = [];
+let currentIndex = 0;
+let slideshowInterval;
+let pollingInterval;
+let heartbeatInterval;
+let failedPolls = 0;
+const MAX_FAILED_POLLS = 5;
+const POLL_INTERVAL = 3000; // 3 seconds
+const SLIDE_DURATION = 12000; // 12 seconds per photo
+const HEARTBEAT_INTERVAL = 5000; // 5 seconds
+
+// Polling with robust error handling
+async function fetchPhotos() {
+    try {
+        const response = await fetch('/api/photos?status=approved');
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const newPhotos = await response.json();
+
+        // Reset failed polls counter on success
+        failedPolls = 0;
+        updateConnectionStatus(true);
+
+        // Check if we have new photos
+        if (JSON.stringify(newPhotos) !== JSON.stringify(photos)) {
+            photos = newPhotos;
+
+            // If this is the first photo, start slideshow
+            if (photos.length > 0 && !slideshowInterval) {
+                startSlideshow();
+            }
+
+            // If slideshow is running, update display
+            if (photos.length > 0) {
+                updateSlideshow();
+            }
+        }
+
+    } catch (error) {
+        console.error('Polling error:', error);
+        failedPolls++;
+
+        if (failedPolls >= MAX_FAILED_POLLS) {
+            updateConnectionStatus(false);
+
+            // Auto-reload after 30 seconds of failed polls
+            if (failedPolls >= 10) {
+                console.log('Too many failed polls, reloading page...');
+                window.location.reload();
+            }
+        }
+    }
+}
+
+// Heartbeat check
+async function checkHeartbeat() {
+    try {
+        const response = await fetch('/api/heartbeat');
+        if (!response.ok) throw new Error('Heartbeat failed');
+    } catch (error) {
+        console.error('Heartbeat error:', error);
+    }
+}
+
+// Update connection status indicator
+function updateConnectionStatus(isConnected) {
+    const status = document.getElementById('connectionStatus');
+    const indicator = document.querySelector('.status-indicator');
+
+    if (isConnected) {
+        status.textContent = 'Connected';
+        indicator.classList.remove('connection-lost');
+    } else {
+        status.textContent = 'Connection Lost';
+        indicator.classList.add('connection-lost');
+    }
+}
+
+// Update slideshow display
+function updateSlideshow() {
+    const slideshow = document.getElementById('slideshow');
+
+    if (photos.length === 0) {
+        slideshow.innerHTML = `
+            <div class="empty-state">
+                <h2>Waiting for photos...</h2>
+                <p>Be the first to share your wisdom!</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Clear existing slides
+    slideshow.innerHTML = '';
+
+    // Create slides for each photo
+    photos.forEach((photo, index) => {
+        const slide = document.createElement('div');
+        slide.className = 'slide';
+        if (index === currentIndex) slide.classList.add('active');
+
+        slide.innerHTML = `
+            <img src="/uploads/${photo.filename}" alt="Life Lesson" loading="eager">
+            <div class="caption">${photo.caption}</div>
+        `;
+
+        slideshow.appendChild(slide);
+    });
+}
+
+// Start slideshow rotation
+function startSlideshow() {
+    if (slideshowInterval) {
+        clearInterval(slideshowInterval);
+    }
+
+    slideshowInterval = setInterval(() => {
+        if (photos.length === 0) return;
+
+        const slides = document.querySelectorAll('.slide');
+        slides[currentIndex].classList.remove('active');
+
+        currentIndex = (currentIndex + 1) % photos.length;
+
+        slides[currentIndex].classList.add('active');
+    }, SLIDE_DURATION);
+}
+
+// Prevent page from sleeping (experimental)
+function keepAwake() {
+    if ('wakeLock' in navigator) {
+        navigator.wakeLock.request('screen').catch(err => {
+            console.log('Wake lock error:', err);
+        });
+    }
+}
+
+// Initialize
+function init() {
+    // Initial fetch
+    fetchPhotos();
+
+    // Start polling
+    pollingInterval = setInterval(fetchPhotos, POLL_INTERVAL);
+
+    // Start heartbeat
+    heartbeatInterval = setInterval(checkHeartbeat, HEARTBEAT_INTERVAL);
+
+    // Keep screen awake
+    keepAwake();
+
+    // Reload page daily to prevent memory leaks
+    setTimeout(() => {
+        console.log('Daily reload for fresh start');
+        window.location.reload();
+    }, 24 * 60 * 60 * 1000);
+}
+
+// Handle visibility change (page becomes visible again)
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        console.log('Page visible again, fetching latest photos');
+        fetchPhotos();
+    }
+});
+
+// Handle errors globally
+window.addEventListener('error', (event) => {
+    console.error('Global error:', event.error);
+});
+
+// Start everything when page loads
+window.addEventListener('load', init);
+</script>
+{% endblock %}

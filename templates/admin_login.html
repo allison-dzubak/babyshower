@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Admin Login{% endblock %}
+{% block styles %}
+.container {
+    max-width: 400px;
+    margin: 100px auto;
+    padding: 40px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+h1 { color: #8FA89E; margin-bottom: 30px; text-align: center; }
+.error-message {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+    display: none;
+}
+.error-message.show {
+    display: block;
+}
+input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+input[type="password"]:focus {
+    outline: none;
+    border-color: #8FA89E;
+}
+.btn {
+    width: 100%;
+    padding: 15px;
+    background: #8FA89E;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btn:hover {
+    background: #7a8f89;
+}
+{% endblock %}
+{% block content %}
+<div class="container">
+    <h1>Admin Access</h1>
+    {% if error %}
+    <div class="error-message show">{{ error }}</div>
+    {% endif %}
+    <form method="POST">
+        <input type="password" name="password" placeholder="Enter admin password" required autofocus>
+        <button type="submit" class="btn">Login</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+# Environment variables (CRITICAL - contains secrets!)
+.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Database (local development only)
+*.db
+*.sqlite
+*.sqlite3
+babyshower.db
+
+# Uploads folder
+uploads/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.heic
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Railway (if using Railway CLI)
+.railway/
+
+# Logs
+*.log
