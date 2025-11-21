@@ -108,8 +108,15 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
     const formData = new FormData(this);
 
     btn.disabled = true;
-    btn.textContent = 'Uploading...';
     message.style.display = 'none';
+
+    // Animated dots
+    let dots = 0;
+    btn.textContent = 'Uploading';
+    const uploadInterval = setInterval(() => {
+        dots = (dots + 1) % 4;
+        btn.textContent = 'Uploading' + '.'.repeat(dots);
+    }, 500);
 
     try {
         const response = await fetch('/upload', {
@@ -152,6 +159,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
         // Scroll to top to see error message
         window.scrollTo(0, 0);
     } finally {
+        clearInterval(uploadInterval);
         btn.disabled = false;
         btn.textContent = 'Submit';
     }
