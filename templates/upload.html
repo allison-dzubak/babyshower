@@ -117,7 +117,19 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
             body: formData
         });
 
-        const result = await response.json();
+        // Log response for debugging
+        console.log('Upload response status:', response.status);
+
+        // Try to parse JSON, but catch if it's not JSON
+        let result;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            result = await response.json();
+        } else {
+            const text = await response.text();
+            console.error('Non-JSON response:', text);
+            throw new Error('Server error: ' + (text.substring(0, 100) || 'Unknown error'));
+        }
 
         if (response.ok) {
             message.className = 'message success';
@@ -125,13 +137,20 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
             message.style.display = 'block';
             this.reset();
             document.getElementById('preview').style.display = 'none';
+
+            // Scroll to top to see success message
+            window.scrollTo(0, 0);
         } else {
             throw new Error(result.error || 'Upload failed');
         }
     } catch (error) {
+        console.error('Upload error:', error);
         message.className = 'message error';
-        message.textContent = error.message;
+        message.textContent = 'Upload failed: ' + error.message;
         message.style.display = 'block';
+
+        // Scroll to top to see error message
+        window.scrollTo(0, 0);
     } finally {
         btn.disabled = false;
         btn.textContent = 'Submit for Approval';

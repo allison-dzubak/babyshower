@@ -142,6 +142,10 @@ def upload():
             try:
                 # Upload to R2
                 r2_client = get_r2_client()
+
+                # Reset file pointer to beginning (important!)
+                photo.seek(0)
+
                 r2_client.upload_fileobj(
                     photo,
                     app.config['R2_BUCKET_NAME'],
@@ -158,9 +162,17 @@ def upload():
 
                 return jsonify({'success': True, 'message': 'Photo uploaded! Waiting for approval...'})
 
+            except ValueError as e:
+                # R2 credentials not configured
+                print(f"R2 configuration error: {e}")
+                return jsonify({'error': 'Server configuration error. Please contact admin.'}), 500
+
             except Exception as e:
-                print(f"Error uploading to R2: {e}")
-                return jsonify({'error': 'Upload failed. Please try again.'}), 500
+                # Other upload errors
+                print(f"Error uploading to R2: {type(e).__name__}: {e}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'error': f'Upload failed: {str(e)}'}), 500
 
         return jsonify({'error': 'Invalid file type'}), 400
 
