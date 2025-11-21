@@ -39,8 +39,26 @@ h1 { color: #8FA89E; margin-bottom: 20px; }
     background: #f5f8f7;
     border-radius: 10px;
     text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.stat-card:hover {
+    transform: scale(1.02);
+}
+.stat-card.active {
+    background: #8FA89E;
+    color: white;
+}
+.stat-card.active .stat-number {
+    color: white;
 }
 .stat-number { font-size: 32px; font-weight: bold; color: #8FA89E; }
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
 .photo-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -83,9 +101,11 @@ h1 { color: #8FA89E; margin-bottom: 20px; }
 .btn:hover { transform: scale(1.05); }
 .btn-approve { background: #28a745; color: white; }
 .btn-reject { background: #dc3545; color: white; }
+.btn-unapprove { background: #ffc107; color: #333; }
 .btn-delete { background: #6c757d; color: white; }
 .timestamp { font-size: 12px; color: #666; }
 .empty { text-align: center; padding: 40px; color: #666; }
+.hidden { display: none; }
 {% endblock %}
 {% block content %}
 <div class="container">
@@ -97,62 +117,104 @@ h1 { color: #8FA89E; margin-bottom: 20px; }
     </div>
 
     <div class="stats">
-        <div class="stat-card">
+        <div class="stat-card active" id="pendingTab" onclick="showSection('pending')">
             <div class="stat-number" id="pendingCount">0</div>
             <div>Pending</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="approvedTab" onclick="showSection('approved')">
             <div class="stat-number" id="approvedCount">0</div>
             <div>Approved</div>
         </div>
     </div>
 
-    <h2 style="margin-bottom: 15px;">Pending Approval</h2>
-    <div id="photoGrid" class="photo-grid">
-        <div class="empty">Loading photos...</div>
+    <div id="pendingSection">
+        <h2 style="margin-bottom: 15px;">Pending Approval</h2>
+        <div id="pendingGrid" class="photo-grid">
+            <div class="empty">Loading photos...</div>
+        </div>
+    </div>
+
+    <div id="approvedSection" class="hidden">
+        <h2 style="margin-bottom: 15px;">Approved Photos</h2>
+        <div id="approvedGrid" class="photo-grid">
+            <div class="empty">Loading photos...</div>
+        </div>
     </div>
 </div>
 {% endblock %}
 {% block scripts %}
 <script>
+let currentView = 'pending';
+
+function showSection(section) {
+    currentView = section;
+
+    // Update tabs
+    document.getElementById('pendingTab').classList.toggle('active', section === 'pending');
+    document.getElementById('approvedTab').classList.toggle('active', section === 'approved');
+
+    // Update sections
+    document.getElementById('pendingSection').classList.toggle('hidden', section !== 'pending');
+    document.getElementById('approvedSection').classList.toggle('hidden', section !== 'approved');
+
+    // Load photos for the selected section
+    loadPhotos();
+}
+
 async function loadPhotos() {
     try {
-        const response = await fetch('/api/photos?status=pending');
-        const photos = await response.json();
+        // Load pending photos
+        const pendingResponse = await fetch('/api/photos?status=pending');
+        const pendingPhotos = await pendingResponse.json();
+        document.getElementById('pendingCount').textContent = pendingPhotos.length;
 
-        document.getElementById('pendingCount').textContent = photos.length;
-
-        const grid = document.getElementById('photoGrid');
-
-        if (photos.length === 0) {
-            grid.innerHTML = '<div class="empty">No pending photos. Great job!</div>';
-            return;
+        const pendingGrid = document.getElementById('pendingGrid');
+        if (pendingPhotos.length === 0) {
+            pendingGrid.innerHTML = '<div class="empty">No pending photos. Great job!</div>';
+        } else {
+            pendingGrid.innerHTML = pendingPhotos.map(photo => `
+                <div class="photo-card" id="photo-${photo.id}">
+                    <img src="/uploads/${photo.filename}" alt="Photo">
+                    <div class="photo-info">
+                        <div class="caption">${photo.caption}</div>
+                        <div class="timestamp">Uploaded ${new Date(photo.uploaded_at).toLocaleString()}</div>
+                        <div class="actions">
+                            <button class="btn btn-approve" onclick="approvePhoto(${photo.id})">Approve</button>
+                            <button class="btn btn-reject" onclick="rejectPhoto(${photo.id})">Reject</button>
+                        </div>
+                        <button class="btn btn-delete" onclick="deletePhoto(${photo.id})" style="margin-top: 10px;">Delete</button>
+                    </div>
+                </div>
+            `).join('');
         }
 
-        grid.innerHTML = photos.map(photo => `
-            <div class="photo-card" id="photo-${photo.id}">
-                <img src="/uploads/${photo.filename}" alt="Photo">
-                <div class="photo-info">
-                    <div class="caption">${photo.caption}</div>
-                    <div class="timestamp">Uploaded ${new Date(photo.uploaded_at).toLocaleString()}</div>
-                    <div class="actions">
-                        <button class="btn btn-approve" onclick="approvePhoto(${photo.id})">Approve</button>
-                        <button class="btn btn-reject" onclick="rejectPhoto(${photo.id})">Reject</button>
-                    </div>
-                    <button class="btn btn-delete" onclick="deletePhoto(${photo.id})" style="margin-top: 10px;">Delete</button>
-                </div>
-            </div>
-        `).join('');
-
-        // Load approved count
+        // Load approved photos
         const approvedResponse = await fetch('/api/photos?status=approved');
         const approvedPhotos = await approvedResponse.json();
         document.getElementById('approvedCount').textContent = approvedPhotos.length;
 
+        const approvedGrid = document.getElementById('approvedGrid');
+        if (approvedPhotos.length === 0) {
+            approvedGrid.innerHTML = '<div class="empty">No approved photos yet.</div>';
+        } else {
+            approvedGrid.innerHTML = approvedPhotos.map(photo => `
+                <div class="photo-card" id="photo-${photo.id}">
+                    <img src="/uploads/${photo.filename}" alt="Photo">
+                    <div class="photo-info">
+                        <div class="caption">${photo.caption}</div>
+                        <div class="timestamp">Approved ${new Date(photo.approved_at || photo.uploaded_at).toLocaleString()}</div>
+                        <div class="actions">
+                            <button class="btn btn-unapprove" onclick="unapprovePhoto(${photo.id})">Unapprove</button>
+                            <button class="btn btn-delete" onclick="deletePhoto(${photo.id})">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
     } catch (error) {
         console.error('Error loading photos:', error);
-        if (error.message.includes('401')) {
-            // Session expired, redirect to login
+        if (error.message && error.message.includes('401')) {
             window.location.href = '/admin';
         }
     }
@@ -162,7 +224,7 @@ async function approvePhoto(id) {
     try {
         const response = await fetch(`/api/photos/${id}/approve`, {
             method: 'POST',
-            credentials: 'same-origin'  // Include session cookie
+            credentials: 'same-origin'
         });
 
         if (response.status === 401) {
@@ -172,7 +234,8 @@ async function approvePhoto(id) {
         }
 
         if (response.ok) {
-            document.getElementById(`photo-${id}`).style.opacity = '0.5';
+            const card = document.getElementById(`photo-${id}`);
+            if (card) card.style.opacity = '0.5';
             setTimeout(() => loadPhotos(), 500);
         }
     } catch (error) {
@@ -180,11 +243,11 @@ async function approvePhoto(id) {
     }
 }
 
-async function rejectPhoto(id) {
+async function unapprovePhoto(id) {
     try {
         const response = await fetch(`/api/photos/${id}/reject`, {
             method: 'POST',
-            credentials: 'same-origin'  // Include session cookie
+            credentials: 'same-origin'
         });
 
         if (response.status === 401) {
@@ -194,7 +257,31 @@ async function rejectPhoto(id) {
         }
 
         if (response.ok) {
-            document.getElementById(`photo-${id}`).style.opacity = '0.5';
+            const card = document.getElementById(`photo-${id}`);
+            if (card) card.style.opacity = '0.5';
+            setTimeout(() => loadPhotos(), 500);
+        }
+    } catch (error) {
+        console.error('Error unapproving photo:', error);
+    }
+}
+
+async function rejectPhoto(id) {
+    try {
+        const response = await fetch(`/api/photos/${id}/reject`, {
+            method: 'POST',
+            credentials: 'same-origin'
+        });
+
+        if (response.status === 401) {
+            alert('Session expired. Please log in again.');
+            window.location.href = '/admin';
+            return;
+        }
+
+        if (response.ok) {
+            const card = document.getElementById(`photo-${id}`);
+            if (card) card.style.opacity = '0.5';
             setTimeout(() => loadPhotos(), 500);
         }
     } catch (error) {
@@ -210,7 +297,7 @@ async function deletePhoto(id) {
     try {
         const response = await fetch(`/api/photos/${id}/delete`, {
             method: 'POST',
-            credentials: 'same-origin'  // Include session cookie
+            credentials: 'same-origin'
         });
 
         if (response.status === 401) {
@@ -220,7 +307,8 @@ async function deletePhoto(id) {
         }
 
         if (response.ok) {
-            document.getElementById(`photo-${id}`).style.opacity = '0.5';
+            const card = document.getElementById(`photo-${id}`);
+            if (card) card.style.opacity = '0.5';
             setTimeout(() => loadPhotos(), 500);
         }
     } catch (error) {
