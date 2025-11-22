@@ -58,35 +58,51 @@ app.config['R2_ACCESS_KEY_ID'] = os.environ.get('R2_ACCESS_KEY_ID')
 app.config['R2_SECRET_ACCESS_KEY'] = os.environ.get('R2_SECRET_ACCESS_KEY')
 app.config['R2_BUCKET_NAME'] = os.environ.get('R2_BUCKET_NAME')
 
+# Pushover Configuration
+app.config['PUSHOVER_APP_TOKEN'] = os.environ.get('PUSHOVER_APP_TOKEN')
+app.config['PUSHOVER_USER_KEY'] = os.environ.get('PUSHOVER_USER_KEY')
+
 db = SQLAlchemy(app)
 
 # Admin push notifications
 def send_pushover_notification(caption):
     """Send push notification via Pushover when photo uploaded"""
-    if not all([app.config.get('PUSHOVER_APP_TOKEN'), app.config.get('PUSHOVER_USER_KEY')]):
-        print("Pushover not configured, skipping notification")
+    app_token = app.config.get('PUSHOVER_APP_TOKEN')
+    user_key = app.config.get('PUSHOVER_USER_KEY')
+
+    print(f"DEBUG: Attempting Pushover notification")
+    print(f"DEBUG: App token exists: {bool(app_token)}")
+    print(f"DEBUG: User key exists: {bool(user_key)}")
+
+    if not app_token or not user_key:
+        print("ERROR: Pushover credentials not configured")
         return
 
     try:
+        print(f"DEBUG: Sending to Pushover API...")
         response = requests.post('https://api.pushover.net/1/messages.json', data={
-            'token': os.environ.get('PUSHOVER_APP_TOKEN'),
-            'user': os.environ.get('PUSHOVER_USER_KEY'),
+            'token': app_token,
+            'user': user_key,
             'message': f'Caption: "{caption[:100]}"',
             'title': '📸 New Photo Uploaded',
             'url': 'https://andreassi-baby-shower.katahdinlogic.com/admin',
             'url_title': 'Open Admin Dashboard',
-            'priority': 0,  # Normal priority
-            'sound': 'pushover'  # Default sound
+            'priority': 0,
+            'sound': 'pushover'
         })
 
+        print(f"DEBUG: Pushover API response status: {response.status_code}")
+        print(f"DEBUG: Pushover API response: {response.text}")
+
         if response.status_code == 200:
-            print(f"Pushover notification sent for photo: {caption[:30]}...")
+            print(f"SUCCESS: Pushover notification sent")
         else:
-            print(f"Pushover notification failed: {response.text}")
+            print(f"ERROR: Pushover API returned non-200 status")
 
     except Exception as e:
-        print(f"Failed to send Pushover notification: {e}")
-        # Don't fail the upload if notification fails
+        print(f"ERROR: Exception sending Pushover: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
 
 # Admin authentication decorator
 def admin_required(f):
