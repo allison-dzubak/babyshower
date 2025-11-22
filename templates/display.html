@@ -243,8 +243,11 @@ async function fetchPhotos() {
         failedPolls = 0;
         updateConnectionStatus(true);
 
-        // Only update if we have NEW photos (count changed)
-        if (newPhotos.length !== photos.length) {
+        // Check if this is initial load or if photos were added/removed
+        const isInitialLoad = photos.length === 0 && newPhotos.length > 0;
+        const hasNewPhotos = newPhotos.length !== photos.length;
+
+        if (isInitialLoad || hasNewPhotos) {
             console.log(`Photo count changed: ${photos.length} → ${newPhotos.length}`);
 
             // Shuffle the new photos
@@ -254,16 +257,14 @@ async function fetchPhotos() {
                 [shuffledPhotos[i], shuffledPhotos[j]] = [shuffledPhotos[j], shuffledPhotos[i]];
             }
 
-            // Update photos array WITHOUT interrupting current display
+            // Update photos array
             photos = shuffledPhotos;
 
-            // Don't reset currentIndex or call updateSlideshow()
-            // Let the natural slideshow timer continue
-
-            // If this was the first photo, initialize the display
-            if (newPhotos.length === 1 && photos.length === 1) {
+            // Only initialize display on INITIAL load, not when adding new photos
+            if (isInitialLoad) {
                 currentIndex = 0;
                 updateSlideshow();
+                startSlideshow();
             }
         }
 
