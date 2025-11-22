@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 from datetime import datetime
+import requests
 import secrets
 import boto3
 from botocore.client import Config
@@ -59,6 +60,33 @@ app.config['R2_BUCKET_NAME'] = os.environ.get('R2_BUCKET_NAME')
 
 db = SQLAlchemy(app)
 
+# Admin push notifications
+def send_pushover_notification(caption):
+    """Send push notification via Pushover when photo uploaded"""
+    if not all([app.config.get('PUSHOVER_APP_TOKEN'), app.config.get('PUSHOVER_USER_KEY')]):
+        print("Pushover not configured, skipping notification")
+        return
+
+    try:
+        response = requests.post('https://api.pushover.net/1/messages.json', data={
+            'token': os.environ.get('PUSHOVER_APP_TOKEN'),
+            'user': os.environ.get('PUSHOVER_USER_KEY'),
+            'message': f'Caption: "{caption[:100]}"',
+            'title': '📸 New Photo Uploaded',
+            'url': 'https://andreassi-baby-shower.katahdinlogic.com/admin',
+            'url_title': 'Open Admin Dashboard',
+            'priority': 0,  # Normal priority
+            'sound': 'pushover'  # Default sound
+        })
+
+        if response.status_code == 200:
+            print(f"Pushover notification sent for photo: {caption[:30]}...")
+        else:
+            print(f"Pushover notification failed: {response.text}")
+
+    except Exception as e:
+        print(f"Failed to send Pushover notification: {e}")
+        # Don't fail the upload if notification fails
 
 # Admin authentication decorator
 def admin_required(f):
@@ -183,6 +211,9 @@ def upload():
                     new_photo = Photo(filename=filename, caption=caption)
                     db.session.add(new_photo)
                     db.session.commit()
+
+                    # Send push notification
+                    send_pushover_notification(caption)
 
                     return jsonify({'success': True, 'message': 'Photo uploaded!'})
 
