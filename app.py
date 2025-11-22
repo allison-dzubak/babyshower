@@ -212,8 +212,13 @@ def upload():
                     db.session.add(new_photo)
                     db.session.commit()
 
+                    print("DEBUG: Database commit successful")
+                    print("DEBUG: About to send Pushover notification")
+
                     # Send push notification
                     send_pushover_notification(caption)
+
+                    print("DEBUG: Pushover notification function completed")
 
                     return jsonify({'success': True, 'message': 'Photo uploaded!'})
 
@@ -229,7 +234,6 @@ def upload():
                     except Exception as cleanup_error:
                         print(f"Failed to cleanup R2 file: {cleanup_error}")
 
-                    # Re-raise to hit outer exception handler
                     return jsonify({'error': 'Database error. Please try again.'}), 500
 
             except ValueError as e:
