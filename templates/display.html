@@ -260,11 +260,18 @@ async function fetchPhotos() {
             // Update photos array
             photos = shuffledPhotos;
 
-            // Only initialize display on INITIAL load, not when adding new photos
             if (isInitialLoad) {
+                // Initial load - start everything
                 currentIndex = 0;
                 updateSlideshow();
                 startSlideshow();
+            } else {
+                // New photos added - rebuild DOM but keep current position
+                // Make sure currentIndex is still valid
+                if (currentIndex >= photos.length) {
+                    currentIndex = 0;
+                }
+                updateSlideshow();
             }
         }
 
