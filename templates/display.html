@@ -243,24 +243,26 @@ async function fetchPhotos() {
         failedPolls = 0;
         updateConnectionStatus(true);
 
-        // Shuffle photos randomly for fair display
-        const shuffledPhotos = [...newPhotos];
-        for (let i = shuffledPhotos.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffledPhotos[i], shuffledPhotos[j]] = [shuffledPhotos[j], shuffledPhotos[i]];
-        }
+        // Only update if we have NEW photos (count changed)
+        if (newPhotos.length !== photos.length) {
+            console.log(`Photo count changed: ${photos.length} → ${newPhotos.length}`);
 
-        // Check if we have new photos
-        if (JSON.stringify(newPhotos) !== JSON.stringify(photos)) {
-            photos = shuffledPhotos;
-
-            // If this is the first photo, start slideshow
-            if (photos.length > 0 && !slideshowInterval) {
-                startSlideshow();
+            // Shuffle the new photos
+            const shuffledPhotos = [...newPhotos];
+            for (let i = shuffledPhotos.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledPhotos[i], shuffledPhotos[j]] = [shuffledPhotos[j], shuffledPhotos[i]];
             }
 
-            // If slideshow is running, update display
-            if (photos.length > 0) {
+            // Update photos array WITHOUT interrupting current display
+            photos = shuffledPhotos;
+
+            // Don't reset currentIndex or call updateSlideshow()
+            // Let the natural slideshow timer continue
+
+            // If this was the first photo, initialize the display
+            if (newPhotos.length === 1 && photos.length === 1) {
+                currentIndex = 0;
                 updateSlideshow();
             }
         }
