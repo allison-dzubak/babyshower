@@ -204,7 +204,7 @@ let heartbeatInterval;
 let failedPolls = 0;
 const MAX_FAILED_POLLS = 5;
 const POLL_INTERVAL = 3000; // 3 seconds
-const SLIDE_DURATION = 12000; // 12 seconds per photo
+const SLIDE_DURATION = 6000; // 6 seconds per photo
 const HEARTBEAT_INTERVAL = 5000; // 5 seconds
 
 // Generate QR Code
@@ -243,9 +243,16 @@ async function fetchPhotos() {
         failedPolls = 0;
         updateConnectionStatus(true);
 
+        // Shuffle photos randomly for fair display
+        const shuffledPhotos = [...newPhotos];
+        for (let i = shuffledPhotos.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledPhotos[i], shuffledPhotos[j]] = [shuffledPhotos[j], shuffledPhotos[i]];
+        }
+
         // Check if we have new photos
         if (JSON.stringify(newPhotos) !== JSON.stringify(photos)) {
-            photos = newPhotos;
+            photos = shuffledPhotos;
 
             // If this is the first photo, start slideshow
             if (photos.length > 0 && !slideshowInterval) {
