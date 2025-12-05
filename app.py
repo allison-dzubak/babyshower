@@ -300,7 +300,14 @@ def admin_logout():
 
 @app.route('/display')
 def display():
+    """Live event display with QR code and slideshow"""
     return render_template('display.html')
+
+
+@app.route('/gallery')
+def gallery():
+    """Mobile-friendly gallery for pre-event sharing"""
+    return render_template('gallery.html')
 
 
 # API Routes

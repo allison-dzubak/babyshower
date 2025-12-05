@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% block title %}Life Lessons for Baby Andreassi{% endblock %}
+{% block styles %}
+.page-container {
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* Header Section */
+.header {
+    max-width: 800px;
+    margin: 0 auto 30px;
+    text-align: center;
+    background: white;
+    padding: 30px 20px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+.header h1 {
+    color: #8FA89E;
+    font-size: 28px;
+    margin-bottom: 10px;
+}
+
+.header .subtitle {
+    color: #666;
+    font-size: 16px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.header .parents {
+    color: #8FA89E;
+    font-style: italic;
+    margin-bottom: 20px;
+}
+
+.upload-btn {
+    display: inline-block;
+    padding: 15px 40px;
+    background: #8FA89E;
+    color: white;
+    text-decoration: none;
+    border-radius: 30px;
+    font-size: 18px;
+    font-weight: bold;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(143, 168, 158, 0.4);
+}
+
+.upload-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(143, 168, 158, 0.5);
+    background: #7a9a8f;
+}
+
+/* Gallery Section */
+.gallery-section {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.gallery-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.gallery-header h2 {
+    color: white;
+    font-size: 22px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.photo-count {
+    color: rgba(255,255,255,0.8);
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+/* Photo Grid */
+.photo-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+@media (min-width: 600px) {
+    .photo-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .header h1 {
+        font-size: 32px;
+    }
+}
+
+@media (min-width: 900px) {
+    .photo-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .header {
+        padding: 40px;
+    }
+}
+
+/* Photo Cards */
+.photo-card {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    transition: transform 0.2s;
+}
+
+.photo-card:hover {
+    transform: translateY(-5px);
+}
+
+.photo-card img {
+    width: 100%;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    background: #f0f0f0;
+}
+
+.photo-card .caption {
+    padding: 20px;
+    color: #333;
+    font-size: 16px;
+    line-height: 1.5;
+    border-top: 3px solid #8FA89E;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+}
+
+.empty-state h3 {
+    color: #8FA89E;
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+.empty-state p {
+    color: #666;
+    font-size: 16px;
+    margin-bottom: 25px;
+}
+
+/* Loading State */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: white;
+    font-size: 18px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Footer CTA */
+.footer-cta {
+    text-align: center;
+    margin-top: 40px;
+    padding: 30px;
+}
+
+.footer-cta p {
+    color: white;
+    font-size: 18px;
+    margin-bottom: 15px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Header -->
+    <header class="header">
+        <h1>Life Lessons for Baby Andreassi</h1>
+        <p class="subtitle">
+            Help us welcome the newest member of the family with your wisdom,
+            favorite memories, and heartfelt advice!
+        </p>
+        <p class="parents">from Lauren & Nick ♥</p>
+        <a href="{{ url_for('upload') }}" class="upload-btn">Share Your Advice</a>
+    </header>
+
+    <!-- Gallery -->
+    <section class="gallery-section">
+        <div class="gallery-header">
+            <h2>Wisdom from Friends & Family</h2>
+            <p class="photo-count" id="photoCount"></p>
+        </div>
+
+        <div id="gallery" class="photo-grid">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                Loading photos...
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer CTA -->
+    <div class="footer-cta" id="footerCta" style="display: none;">
+        <p>Have advice to share?</p>
+        <a href="{{ url_for('upload') }}" class="upload-btn">Add Your Photo</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadPhotos() {
+    const gallery = document.getElementById('gallery');
+    const photoCount = document.getElementById('photoCount');
+    const footerCta = document.getElementById('footerCta');
+
+    try {
+        const response = await fetch('/api/photos?status=approved');
+        const photos = await response.json();
+
+        if (photos.length === 0) {
+            gallery.innerHTML = `
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <h3>Be the First!</h3>
+                    <p>No photos yet — be the first to share your wisdom with Baby Andreassi.</p>
+                    <a href="/upload" class="upload-btn">Share Your Advice</a>
+                </div>
+            `;
+            photoCount.textContent = '';
+            return;
+        }
+
+        photoCount.textContent = `${photos.length} photo${photos.length !== 1 ? 's' : ''} shared`;
+        footerCta.style.display = 'block';
+
+        gallery.innerHTML = photos.map(photo => `
+            <div class="photo-card">
+                <img src="/uploads/${photo.filename}" alt="Photo" loading="lazy">
+                <div class="caption">${escapeHtml(photo.caption)}</div>
+            </div>
+        `).join('');
+
+    } catch (error) {
+        console.error('Error loading photos:', error);
+        gallery.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <h3>Oops!</h3>
+                <p>Having trouble loading photos. Please refresh the page.</p>
+            </div>
+        `;
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Load on page ready
+document.addEventListener('DOMContentLoaded', loadPhotos);
+</script>
+{% endblock %}
