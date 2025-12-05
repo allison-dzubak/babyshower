@@ -36,6 +36,16 @@
     margin-bottom: 20px;
 }
 
+.header .keepsake {
+    color: #555;
+    font-size: 14px;
+    background: #f5f8f7;
+    padding: 12px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    border-left: 4px solid #8FA89E;
+}
+
 .upload-btn {
     display: inline-block;
     padding: 15px 40px;
@@ -118,9 +128,9 @@
 
 .photo-card img {
     width: 100%;
-    aspect-ratio: 4/3;
-    object-fit: cover;
-    background: #f0f0f0;
+    max-height: 500px;
+    object-fit: contain;
+    background: #1a1a1a;
 }
 
 .photo-card .caption {
@@ -195,11 +205,16 @@
     <header class="header">
         <h1>Life Lessons for Baby Andreassi</h1>
         <p class="subtitle">
-            Help us welcome the newest member of the family with your wisdom,
-            favorite memories, and heartfelt advice!
+            Share your favorite photos of Lauren & Nick being silly, adventurous,
+            wise, or just themselves—then caption it with advice for Baby as
+            demonstrated by Mom & Dad!
         </p>
-        <p class="parents">from Lauren & Nick ♥</p>
-        <a href="{{ url_for('upload') }}" class="upload-btn">Share Your Advice</a>
+        <p class="keepsake">
+            Your photos will be displayed at the baby shower and compiled into
+            a keepsake book for the new family.
+        </p>
+        <p class="parents">with love, Lauren & Nick ♥</p>
+        <a href="{{ url_for('upload') }}" class="upload-btn">Share Your Photo & Advice</a>
     </header>
 
     <!-- Gallery -->
@@ -219,8 +234,8 @@
 
     <!-- Footer CTA -->
     <div class="footer-cta" id="footerCta" style="display: none;">
-        <p>Have advice to share?</p>
-        <a href="{{ url_for('upload') }}" class="upload-btn">Add Your Photo</a>
+        <p>Have a favorite photo of Lauren & Nick to share?</p>
+        <a href="{{ url_for('upload') }}" class="upload-btn">Add Your Photo & Advice</a>
     </div>
 </div>
 {% endblock %}
@@ -240,8 +255,8 @@ async function loadPhotos() {
             gallery.innerHTML = `
                 <div class="empty-state" style="grid-column: 1 / -1;">
                     <h3>Be the First!</h3>
-                    <p>No photos yet — be the first to share your wisdom with Baby Andreassi.</p>
-                    <a href="/upload" class="upload-btn">Share Your Advice</a>
+                    <p>No photos yet — share a favorite photo of Lauren & Nick with your advice for Baby!</p>
+                    <a href="/upload" class="upload-btn">Share Your Photo & Advice</a>
                 </div>
             `;
             photoCount.textContent = '';
