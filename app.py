@@ -1,4 +1,5 @@
 import os
+import io
 from flask import Flask, render_template, request, jsonify, redirect, url_for, send_from_directory, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
@@ -8,6 +9,11 @@ import secrets
 import boto3
 from botocore.client import Config
 from functools import wraps
+from PIL import Image
+import pillow_heif
+
+# Register HEIF/HEIC support with Pillow
+pillow_heif.register_heif_opener()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(16))
@@ -64,6 +70,7 @@ app.config['PUSHOVER_USER_KEY'] = os.environ.get('PUSHOVER_USER_KEY')
 
 db = SQLAlchemy(app)
 
+
 # Admin push notifications
 def send_pushover_notification(caption):
     """Send push notification via Pushover when photo uploaded"""
@@ -103,6 +110,7 @@ def send_pushover_notification(caption):
         print(f"ERROR: Exception sending Pushover: {type(e).__name__}: {e}")
         import traceback
         traceback.print_exc()
+
 
 # Admin authentication decorator
 def admin_required(f):
@@ -204,21 +212,53 @@ def upload():
 
         if photo and allowed_file(photo.filename):
             # Generate unique filename
-            filename = secure_filename(f"{datetime.utcnow().timestamp()}_{photo.filename}")
+            original_filename = secure_filename(f"{datetime.utcnow().timestamp()}_{photo.filename}")
+
+            # Check if HEIC and convert to JPEG
+            file_ext = photo.filename.rsplit('.', 1)[1].lower() if '.' in photo.filename else ''
+
+            if file_ext == 'heic':
+                try:
+                    # Read HEIC file and convert to JPEG
+                    photo.seek(0)
+                    img = Image.open(photo)
+
+                    # Convert to RGB if necessary (handles RGBA, etc.)
+                    if img.mode in ('RGBA', 'P'):
+                        img = img.convert('RGB')
+
+                    # Save to bytes buffer as JPEG
+                    jpeg_buffer = io.BytesIO()
+                    img.save(jpeg_buffer, format='JPEG', quality=90)
+                    jpeg_buffer.seek(0)
+
+                    # Update filename and prepare for upload
+                    filename = original_filename.rsplit('.', 1)[0] + '.jpg'
+                    file_to_upload = jpeg_buffer
+                    content_type = 'image/jpeg'
+
+                    print(f"Converted HEIC to JPEG: {original_filename} -> {filename}")
+
+                except Exception as e:
+                    print(f"HEIC conversion failed: {e}")
+                    return jsonify({'error': 'Failed to process HEIC image. Please try uploading as JPG.'}), 400
+            else:
+                # Not HEIC - use original file
+                filename = original_filename
+                photo.seek(0)
+                file_to_upload = photo
+                content_type = photo.content_type
 
             try:
                 # Upload to R2
                 r2_client = get_r2_client()
 
-                # Reset file pointer to beginning (important!)
-                photo.seek(0)
-
                 r2_client.upload_fileobj(
-                    photo,
+                    file_to_upload,
                     app.config['R2_BUCKET_NAME'],
                     filename,
                     ExtraArgs={
-                        'ContentType': photo.content_type
+                        'ContentType': content_type
                     }
                 )
 
