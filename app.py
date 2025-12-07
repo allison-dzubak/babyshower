@@ -276,7 +276,8 @@ def upload():
 
                     print("DEBUG: Pushover notification function completed")
 
-                    return jsonify({'success': True, 'message': 'Photo uploaded!'})
+                    return jsonify(
+                        {'success': True, 'message': "Photo submitted! We'll add it to the gallery shortly."})
 
                 except Exception as db_error:
                     # Database save failed - delete from R2 to keep consistent
